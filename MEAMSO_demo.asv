@@ -1,0 +1,90 @@
+%% Minimal MEAMSO implementation
+%{
+
+This code is used in Heggli et. al. A Metastable Attractor Model of
+Self-Other integration (202x).
+
+The code creates an example trial, and runs the MEAMSO on the trial.
+
+
+Contact: Ole Adrian Heggli - oleheggli@gmail.com
+%}
+
+
+%% Read in data
+% This is data transition from mutual adaptation to leading-following
+
+mutToLeadAction = load('empiricalData/MutAdapt_to_LeadFoll_action.mat');
+mutToLeadPerception = load('empiricalData/MutAdapt_to_LeadFoll_perception.mat');
+mutToLeadAction = mutToLeadAction.mutToLeadAction;
+mutToLeadPerception = mutToLeadPerception.mutToLeadPerception;
+
+
+% Uncomment below to see plot.
+%{
+figure;
+plot(diff(mutToLeadAction))
+hold on
+plot(diff(mutToLeadPerception))
+%}
+
+
+% 
+
+%% Run MEAMSO
+
+% Set prior and scaling (c) for the bayesian averaging
+prior = 0;
+c = 4;
+% Set prior and scaling (c) for the bayesian averaging in the hysteresis loop.
+brainPrior = 1.5;
+brainC = 4;
+% Set the max asynchrony for the instantaneous comparisons, and the slope.
+instCompMS=50;
+instCompSlope=20;
+
+% Run the model
+output = runMEAMSObehavioural(mutToLeadPerception*1000, mutToLeadAction*1000, prior, c, brainPrior, brainC, instCompMS, instCompSlope);
+
+% Collect the output
+brainStateMean = output(:,13);
+bestModel = output(:,6);
+brainState = output(:,7);
+uncertainty = output(:,10);
+
+% Plot the output
+figure;
+plot(brainStateMean)
+hold on
+plot(brainState)
+
+
+
+
+actionITI=diff(mutToLeadAction);
+perceptionITI=diff(mutToLeadPerception);
+lagHolder=[];
+for n=16:15:length(actionITI)
+    thisWindowAction = actionITI(n-15:n);
+    thisWindowPerception = perceptionITI(n-15:n);
+    coeffs = crosscorr(thisWindowAction, thisWindowPerception,1);
+    lagHolder=[lagHolder,coeffs];
+end
+
+figure;
+for n=1:length(lagHolder)
+    subplot(1,length(lagHolder),n)
+    bar(lagHolder(:,n))
+    ylim([-.9, .9])
+end
+
+
+
+
+
+
+
+
+
+
+% 
